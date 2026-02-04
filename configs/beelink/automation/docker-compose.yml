@@ -1,0 +1,72 @@
+# Gruham Automation Stack
+# Home Assistant + MQTT Broker (optional)
+# Deploy with: docker compose up -d
+
+version: '3.8'
+
+services:
+  # ===========================================
+  # HOME ASSISTANT - Smart Home Hub
+  # ===========================================
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
+    restart: unless-stopped
+    network_mode: host  # Required for local device discovery (Zigbee, Bluetooth, mDNS, etc.)
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ${DOCKER_DATA}/homeassistant/config:/config
+      - /run/dbus:/run/dbus:ro  # D-Bus for Bluetooth
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0  # Zigbee/Z-Wave stick (if you have one, otherwise remove)
+    privileged: true  # Required for USB device access
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===========================================
+  # MOSQUITTO - MQTT Broker (Optional, for IoT devices)
+  # ===========================================
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"  # MQTT
+      - "9001:9001"  # MQTT over WebSockets
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ${DOCKER_DATA}/mosquitto/config:/mosquitto/config
+      - ${DOCKER_DATA}/mosquitto/data:/mosquitto/data
+      - ${DOCKER_DATA}/mosquitto/log:/mosquitto/log
+    networks:
+      - gruham_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===========================================
+  # NODE-RED - Visual Automation (Optional)
+  # ===========================================
+  nodered:
+    image: nodered/node-red:latest
+    container_name: nodered
+    restart: unless-stopped
+    ports:
+      - "1880:1880"
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ${DOCKER_DATA}/nodered/data:/data
+    networks:
+      - gruham_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+# ===========================================
+# NETWORKS
+# ===========================================
+networks:
+  gruham_network:
+    external: true
+    name: gruham_network

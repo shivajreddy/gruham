@@ -1,0 +1,91 @@
+# Gruham Raspberry Pi Services
+# Pi-hole (DNS + Ad Blocking), Uptime Kuma (Monitoring)
+# Deploy with: docker compose up -d
+
+version: '3.8'
+
+services:
+  # ===========================================
+  # PI-HOLE - DNS Server & Ad Blocker
+  # ===========================================
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    restart: unless-stopped
+    hostname: pihole
+    ports:
+      - "53:53/tcp"    # DNS
+      - "53:53/udp"    # DNS
+      - "80:80/tcp"    # Web UI
+      - "443:443/tcp"  # Web UI (HTTPS)
+    environment:
+      - TZ=${TZ}
+      - WEBPASSWORD=${PIHOLE_PASSWORD}  # Set a strong password!
+      - PIHOLE_DNS_=1.1.1.1;1.0.0.1     # Upstream DNS (Cloudflare)
+      - DNSMASQ_LISTENING=all           # Listen on all interfaces
+      - WEBTHEME=default-dark           # Dark theme
+      - DNSSEC=true                     # Enable DNSSEC
+      - REV_SERVER=true                 # Enable reverse DNS
+      - REV_SERVER_TARGET=${BEELINK_IP} # Reverse DNS target
+      - REV_SERVER_CIDR=${LOCAL_NETWORK}
+    volumes:
+      - ${DOCKER_DATA}/pihole/etc-pihole:/etc/pihole
+      - ${DOCKER_DATA}/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+    cap_add:
+      - NET_ADMIN  # Required for DHCP (if using Pi-hole as DHCP server)
+    networks:
+      - gruham_network
+
+  # ===========================================
+  # UPTIME KUMA - Service Monitoring
+  # ===========================================
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: uptime-kuma
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ${DOCKER_DATA}/uptime-kuma/data:/app/data
+    networks:
+      - gruham_network
+
+  # ===========================================
+  # UNBOUND - Recursive DNS (Optional, for more privacy)
+  # ===========================================
+  unbound:
+    image: mvance/unbound:latest
+    container_name: unbound
+    restart: unless-stopped
+    ports:
+      - "5335:53/tcp"
+      - "5335:53/udp"
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ${DOCKER_DATA}/unbound/config:/opt/unbound/etc/unbound
+    networks:
+      - gruham_network
+
+# ===========================================
+# NETWORKS
+# ===========================================
+networks:
+  gruham_network:
+    name: gruham_network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# ===========================================
+# NOTES
+# ===========================================
+# After deployment:
+# 1. Access Pi-hole: http://192.168.4.101/admin
+# 2. Access Uptime Kuma: http://192.168.4.101:3001
+# 3. Configure router to use 192.168.4.101 as primary DNS
+# 4. Add monitors in Uptime Kuma for all Gruham services
+# 5. Optional: Point Pi-hole upstream DNS to Unbound (127.0.0.1#5335)

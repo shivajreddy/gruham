@@ -1,0 +1,93 @@
+# Gruham Core Services Stack
+# Core infrastructure services: Nginx Proxy Manager, Portainer, Cloudflare Tunnel, Watchtower
+# Deploy with: docker compose up -d
+
+version: '3.8'
+
+services:
+  # ===========================================
+  # NGINX PROXY MANAGER - Reverse Proxy & SSL
+  # ===========================================
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - "80:80"      # HTTP
+      - "443:443"    # HTTPS
+      - "81:81"      # Admin Web UI
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DOCKER_DATA}/nginx-proxy-manager/data:/data
+      - ${DOCKER_DATA}/nginx-proxy-manager/letsencrypt:/etc/letsencrypt
+    networks:
+      - gruham_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===========================================
+  # PORTAINER - Docker Management UI
+  # ===========================================
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    ports:
+      - "9443:9443"  # HTTPS Web UI
+      - "8000:8000"  # Agent connection (optional)
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ${DOCKER_DATA}/portainer/data:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - gruham_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===========================================
+  # CLOUDFLARE TUNNEL - Secure Remote Access
+  # ===========================================
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    networks:
+      - gruham_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===========================================
+  # WATCHTOWER - Auto-update Docker Containers
+  # ===========================================
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      - WATCHTOWER_CLEANUP=true              # Remove old images
+      - WATCHTOWER_INCLUDE_RESTARTING=true   # Update containers even if restarting
+      - WATCHTOWER_POLL_INTERVAL=86400       # Check every 24 hours
+      - WATCHTOWER_LABEL_ENABLE=true         # Only update containers with label
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - gruham_network
+
+# ===========================================
+# NETWORKS
+# ===========================================
+networks:
+  gruham_network:
+    name: gruham_network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

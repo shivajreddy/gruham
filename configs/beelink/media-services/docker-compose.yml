@@ -1,0 +1,108 @@
+# Gruham Media Services Stack
+# Plex, Jellyfin, Tautulli, Overseerr
+# Deploy with: docker compose up -d
+
+version: '3.8'
+
+services:
+  # ===========================================
+  # PLEX MEDIA SERVER
+  # ===========================================
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    restart: unless-stopped
+    network_mode: host  # Required for Plex discovery and DLNA
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - VERSION=docker
+      - PLEX_CLAIM=${PLEX_CLAIM}  # Get from https://www.plex.tv/claim/
+      - ADVERTISE_IP=${ADVERTISE_IP}
+    volumes:
+      - ${DOCKER_DATA}/plex/config:/config
+      - ${DOCKER_DATA}/plex/transcode:/transcode
+      - ${NAS_MEDIA}:/media:ro  # Read-only mount from NAS
+    devices:
+      - /dev/dri:/dev/dri  # AMD GPU hardware transcoding
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===========================================
+  # JELLYFIN MEDIA SERVER
+  # ===========================================
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    ports:
+      - "8096:8096"   # HTTP Web UI
+      - "8920:8920"   # HTTPS Web UI (optional)
+      - "7359:7359/udp"  # Auto-discovery
+      - "1900:1900/udp"  # DLNA
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - JELLYFIN_PublishedServerUrl=${JELLYFIN_PUBLISHED_SERVER_URL}
+    volumes:
+      - ${DOCKER_DATA}/jellyfin/config:/config
+      - ${DOCKER_DATA}/jellyfin/cache:/cache
+      - ${NAS_MEDIA}:/media:ro  # Read-only mount from NAS (same as Plex)
+    devices:
+      - /dev/dri:/dev/dri  # AMD GPU hardware transcoding
+    networks:
+      - gruham_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===========================================
+  # TAUTULLI - Plex Monitoring & Statistics
+  # ===========================================
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: tautulli
+    restart: unless-stopped
+    ports:
+      - "8181:8181"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DOCKER_DATA}/tautulli/config:/config
+    networks:
+      - gruham_network
+    depends_on:
+      - plex
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===========================================
+  # OVERSEERR - Media Request Management
+  # ===========================================
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: overseerr
+    restart: unless-stopped
+    ports:
+      - "5055:5055"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DOCKER_DATA}/overseerr/config:/config
+    networks:
+      - gruham_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+# ===========================================
+# NETWORKS
+# ===========================================
+networks:
+  gruham_network:
+    external: true
+    name: gruham_network

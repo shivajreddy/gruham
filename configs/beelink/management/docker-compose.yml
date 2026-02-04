@@ -1,0 +1,126 @@
+# Gruham Management Services Stack
+# Homepage Dashboard, Filebrowser, Duplicati
+# Deploy with: docker compose up -d
+
+version: '3.8'
+
+services:
+  # ===========================================
+  # HOMEPAGE - Unified Dashboard
+  # ===========================================
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DOCKER_DATA}/homepage/config:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # For Docker integrations
+    networks:
+      - gruham_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===========================================
+  # FILEBROWSER - Web File Manager
+  # ===========================================
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: filebrowser
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DOCKER_DATA}/filebrowser/database.db:/database.db
+      - ${DOCKER_DATA}/filebrowser/config.json:/config.json
+      - ${NAS_MEDIA}:/srv/media  # Browse NAS media
+      - ${NAS_BACKUPS}:/srv/backups  # Browse NAS backups
+      - ${DOCKER_DATA}:/srv/configs  # Browse local configs
+    networks:
+      - gruham_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===========================================
+  # DUPLICATI - Backup Solution
+  # ===========================================
+  duplicati:
+    image: lscr.io/linuxserver/duplicati:latest
+    container_name: duplicati
+    restart: unless-stopped
+    ports:
+      - "8200:8200"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DOCKER_DATA}/duplicati/config:/config
+      - ${DOCKER_DATA}/duplicati/backups:/backups  # Temporary backup staging
+      - ${DOCKER_DATA}:/source/docker-configs:ro  # What to backup
+      - /etc:/source/etc:ro  # System configs to backup
+      - ${NAS_BACKUPS}:/backups/nas  # NAS backup destination
+    networks:
+      - gruham_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===========================================
+  # VAULTWARDEN - Password Manager (Optional)
+  # ===========================================
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - DOMAIN=https://vault.${DOMAIN_NAME}  # Your vault domain
+      - SIGNUPS_ALLOWED=true  # Set to false after creating your account
+      - ADMIN_TOKEN=${VAULTWARDEN_ADMIN_TOKEN}  # Generate with: openssl rand -base64 32
+    volumes:
+      - ${DOCKER_DATA}/vaultwarden/data:/data
+    networks:
+      - gruham_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===========================================
+  # DASHY - Alternative Dashboard (Optional)
+  # ===========================================
+  dashy:
+    image: lissy93/dashy:latest
+    container_name: dashy
+    restart: unless-stopped
+    ports:
+      - "4000:80"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${DOCKER_DATA}/dashy/config.yml:/app/public/conf.yml
+    networks:
+      - gruham_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+# ===========================================
+# NETWORKS
+# ===========================================
+networks:
+  gruham_network:
+    external: true
+    name: gruham_network
