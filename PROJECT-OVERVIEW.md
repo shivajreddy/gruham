@@ -464,4 +464,18 @@ You now have a complete, professional-grade home server architecture planned and
 
 ---
 
+## License & Copyright
+
+**PROPRIETARY LICENSE - ALL RIGHTS RESERVED**
+
+Copyright © 2026. All Rights Reserved.
+
+This project and all associated documentation, code, configurations, and materials are proprietary and confidential. No part of this work may be used, copied, modified, distributed, or accessed without explicit written permission.
+
+See [LICENSE](LICENSE) for complete terms.
+
+**UNAUTHORIZED USE IS STRICTLY PROHIBITED.**
+
+---
+
 *Gruham - Your complete home server solution.*

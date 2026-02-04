@@ -108,4 +108,14 @@ Remote Access: Cloudflare Tunnel + Tailscale VPN
 
 ---
 
-Created with ❤️ for a complete home server experience
+## License
+
+**PROPRIETARY - ALL RIGHTS RESERVED**
+
+This project is proprietary and confidential. See [LICENSE](LICENSE) and [COPYRIGHT-NOTICE.md](COPYRIGHT-NOTICE.md) for details.
+
+Unauthorized use, reproduction, or distribution is strictly prohibited.
+
+---
+
+Copyright © 2026. All Rights Reserved.

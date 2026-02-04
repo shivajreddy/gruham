@@ -1,0 +1,84 @@
+# Gruham - Proprietary Project
+# Copyright (c) 2026. All Rights Reserved.
+
+# Environment files (contain secrets)
+.env
+*.env
+!.env.example
+
+# Credentials and sensitive data
+*.key
+*.pem
+*.crt
+credentials.json
+secrets.yaml
+auth.json
+
+# Docker volumes and data
+docker-data/
+volumes/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor directories
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Backup files
+*.backup
+*.bak
+backup/
+
+# Node modules (if any)
+node_modules/
+
+# Python (if any)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+
+# Compiled files
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Package files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Keep example files
+!*.example
+!*-example.*
